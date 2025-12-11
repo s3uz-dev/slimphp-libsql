@@ -1,12 +1,12 @@
-
+## turso dev 
+❯ turso dev --db-file mi_proyecto.db  
 
 composer require slim/slim
 
 composer require slim/psr7
 
 composer require php-di/php-di
-
-
+ 
 composer dump-autoload
 
 
