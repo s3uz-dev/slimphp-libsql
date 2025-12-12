@@ -93,6 +93,18 @@ curl -X PUT   http://localhost:8000/api/products/12  -H "Content-Type: applicati
 curl -X DELETE  http://localhost:8000/api/products/12
 
 
+
+
+
+curl -X POST http://localhost:8000/api/auth/login  -H "Content-Type: application/json" -d '{
+    "email": "kb81987@gmail.com",
+    "password": "masterpass" 
+  }'
+
+
+curl -X GET http://localhost:8000/api/me   -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NjU1MTYzNzIsImV4cCI6MTc2NTUxNzI3Miwic3ViIjoxLCJlbWFpbCI6ImtiODE5ODdAZ21haWwuY29tIiwicm9sZSI6InVzZXIifQ.VccF36r-yupTfKk5Tvm6zcn-dAkZIYG2i5SdodrM1l0"
+
+
 ```
 
 

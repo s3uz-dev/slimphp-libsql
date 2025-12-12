@@ -1,7 +1,12 @@
 <?php
+
 declare(strict_types=1);
 
 use App\Database\Database;
+use Dotenv\Dotenv;
+
+$dotenv = Dotenv::createUnsafeImmutable(__DIR__ . '/../');
+$dotenv->safeLoad();
 
 return [
     Database::class => function () {
