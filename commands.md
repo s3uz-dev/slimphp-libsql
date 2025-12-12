@@ -1,3 +1,7 @@
+# repo
+https://github.com/s3uz-dev/slimphp-libsql
+
+
 ## turso dev 
 ❯ turso dev --db-file mi_proyecto.db  
 

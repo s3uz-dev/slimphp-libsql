@@ -6,8 +6,7 @@ use Slim\App;
 use App\Middlewares\AddJsonResponseHeader;
 use App\Middlewares\JwtMiddleware;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Psr\Http\Message\ResponseInterface as Response;
- 
+use Psr\Http\Message\ResponseInterface as Response; 
 
 return function (App $app) {
     // Middleware aplicado a TODAS las rutas
