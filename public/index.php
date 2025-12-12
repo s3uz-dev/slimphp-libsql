@@ -2,58 +2,79 @@
 
 declare(strict_types=1);
 
+require __DIR__ . '/../vendor/autoload.php';
+
 use Slim\Factory\AppFactory;
+use Dotenv\Dotenv;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\ResponseInterface as Response;
-use DI\ContainerBuilder;
 use App\Middlewares\AddJsonResponseHeader;
+use App\Middlewares\JwtMiddleware;
+use DI\ContainerBuilder;
+use Valitron\Validator;
 
-define('APP_ROOT', dirname(__DIR__));
+// Load environment variables (use Unsafe to export to putenv for getenv() access)
+$dotenv = Dotenv::createUnsafeImmutable(__DIR__ . '/../');
+$dotenv->safeLoad();
 
-require APP_ROOT . '/vendor/autoload.php';
+// Set Valitron language (Spanish)
+Validator::lang('es');
 
-$builder = new ContainerBuilder;
-$container = $builder->addDefinitions(APP_ROOT . '/config/definitions.php')->build();
-
+// Build DI container
+$builder = new ContainerBuilder();
+$container = $builder->addDefinitions(__DIR__ . '/../config/definitions.php')->build();
 AppFactory::setContainer($container);
 
+// Create Slim app
 $app = AppFactory::create();
 
-// tratar los argumentos de los handlers de ruta como un array
-// $collectors = $app->getRouteCollector();
-// $collectors->setDefaultInvocationStrategy(new \Slim\Handlers\Strategies\RequestResponseArgs );
-
-// Body parsing middleware
+// Global middleware
 $app->addBodyParsingMiddleware();
-
-// error middleware 
-$error_middleware = $app->addErrorMiddleware(true, true, true);
-
-// evitar html en respuestas de error
-$error_handler = $error_middleware->getDefaultErrorHandler();
-$error_handler->forceContentType('application/json');
-
-// Middleware para agregar header JSON a todas las respuestas
+$app->addRoutingMiddleware();
+$app->addErrorMiddleware(true, true, true);
 $app->add(new AddJsonResponseHeader());
 
- 
-//  Establecer el idioma de forma estática
-// (Esto es lo que Valitron usa para buscar los mensajes por defecto)
-Valitron\Validator::lang('es');
 
 
+// Public authentication routes (no JWT required)
+$app->post('/auth/register', [\App\Controllers\AuthController::class, 'register']);
+$app->post('/auth/login', [\App\Controllers\AuthController::class, 'login']);
+$app->post('/auth/refresh', [\App\Controllers\AuthController::class, 'refresh']);
+$app->post('/auth/logout', [\App\Controllers\AuthController::class, 'logout']);
 
+// Simple root route (JSON response)
 $app->get('/', function (Request $request, Response $response) {
-    $response->getBody()->write("Hello, World!");
-    return $response;
+    $payload = ['message' => 'Hello, World!'];
+    $response->getBody()->write(json_encode($payload));
+    return $response->withHeader('Content-Type', 'application/json');
 });
 
-$app->get('/api/products', App\Controllers\ProductsController::class . ':all');
-$app->get('/api/products/{id:[0-9]+}',  App\Controllers\ProductsController::class . ':byId');
-$app->post('/api/products', [App\Controllers\ProductsController::class,  'create']);
-$app->put('/api/products/{id:[0-9]+}', [App\Controllers\ProductsController::class,  'update']);
-$app->delete('/api/products/{id:[0-9]+}', [App\Controllers\ProductsController::class,  'delete']);
+// API routes – ensure JSON header and return controller response
+$app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
+    $group->get('/products', function (Request $request, Response $response) use ($group) {
+        $response = $group->getContainer()
+            ->get(\App\Controllers\ProductsController::class)
+            ->all($request, $response);
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+    $group->get('/products/{id:[0-9]+}', function (Request $request, Response $response, array $args) use ($group) {
+        $response = $group->getContainer()
+            ->get(\App\Controllers\ProductsController::class)
+            ->byId($request, $response, $args);
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+    // POST, PUT, DELETE already return JSON via controller methods
+    $group->post('/products', [\App\Controllers\ProductsController::class, 'create']);
+    $group->put('/products/{id:[0-9]+}', [\App\Controllers\ProductsController::class, 'update']);
+    $group->delete('/products/{id:[0-9]+}', [\App\Controllers\ProductsController::class, 'delete']);
+})->add(new JwtMiddleware());
 
-
+// Example protected route (outside /api) – also uses JWT middleware
+$app->get('/me', function (Request $request, Response $response) {
+    $user = $request->getAttribute('user');
+    $payload = ['user' => $user];
+    $response->getBody()->write(json_encode($payload));
+    return $response->withHeader('Content-Type', 'application/json');
+});
 
 $app->run();

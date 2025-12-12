@@ -2,3 +2,4 @@ vendor
 *.lock
 jwt_secret.txt
 mi_proyecto.db  
+.env
